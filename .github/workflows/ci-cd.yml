@@ -1,0 +1,79 @@
+name: User Service CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, staging ]
+  pull_request:
+    branches: [ main, staging ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./gradlew
+
+      - name: Build with Gradle
+        run: ./gradlew build
+
+      - name: Run tests
+        run: ./gradlew test
+
+      - name: Build JAR
+        run: ./gradlew bootJar
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: user-service-jar
+          path: build/libs/*.jar
+
+  deploy-staging:
+    needs: build
+    if: github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: user-service-jar
+          path: .
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Setup known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to EC2
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
+        run: |
+          JAR_FILE=$(find . -name "*.jar" | grep -v plain | head -n 1)
+          scp $JAR_FILE $EC2_USERNAME@$EC2_HOST:~/apps/user-service.jar
+
+          ssh $EC2_USERNAME@$EC2_HOST << 'EOF'
+            if pgrep -f "user-service.jar"; then
+              sudo kill $(pgrep -f "user-service.jar")
+            fi
+            sleep 3
+            nohup java -jar ~/apps/user-service.jar > ~/apps/app.log 2>&1 &
+            echo "Deployment finished"
+          EOF
