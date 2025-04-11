@@ -1,8 +1,8 @@
 package id.ac.ui.cs.advprog.b13.hiringgo.user.model;
 
-import dto.UserRequest;
-import model.User;
-import model.UserRole;
+import id.ac.ui.cs.advprog.b13.hiringgo.user.dto.UserRequest;
+import id.ac.ui.cs.advprog.b13.hiringgo.user.model.User;
+import id.ac.ui.cs.advprog.b13.hiringgo.user.model.UserRole;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
