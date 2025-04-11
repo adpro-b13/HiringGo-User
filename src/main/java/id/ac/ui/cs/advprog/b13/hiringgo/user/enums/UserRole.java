@@ -1,8 +1,9 @@
-package id.ac.ui.cs.advprog.b13.hiringgo.user.model;
+package id.ac.ui.cs.advprog.b13.hiringgo.user.enums;
 
 public enum UserRole {
     ADMIN,
-    CUSTOMER;
+    MAHASISWA,
+    DOSEN;
 
     public static boolean contains(String value) {
         for (UserRole role : UserRole.values()) {

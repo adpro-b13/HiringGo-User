@@ -1,6 +1,7 @@
 package id.ac.ui.cs.advprog.b13.hiringgo.user.model;
 
 import id.ac.ui.cs.advprog.b13.hiringgo.user.dto.UserRequest;
+import id.ac.ui.cs.advprog.b13.hiringgo.user.enums.UserRole;
 import lombok.Getter;
 
 @Getter
