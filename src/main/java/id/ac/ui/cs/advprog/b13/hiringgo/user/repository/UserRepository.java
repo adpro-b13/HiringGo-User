@@ -8,7 +8,8 @@ import java.util.List;
 
 @Repository
 public class UserRepository {
-    private List<User> userData = new ArrayList<>();
+
+    private final List<User> userData = new ArrayList<>();
 
     public User save(User user) {
         for (int i = 0; i < userData.size(); i++) {
@@ -22,25 +23,21 @@ public class UserRepository {
     }
 
     public User findById(String id) {
-        for (User user : userData) {
-            if (user.getId().equals(id)) {
-                return user;
-            }
-        }
-        return null;
+        return userData.stream()
+                .filter(user -> user.getId().equals(id))
+                .findFirst()
+                .orElse(null);
     }
 
     public User findByEmail(String email) {
-        for (User user : userData) {
-            if (user.getEmail().equals(email)) {
-                return user;
-            }
-        }
-        return null;
+        return userData.stream()
+                .filter(user -> user.getEmail().equals(email))
+                .findFirst()
+                .orElse(null);
     }
+
 
     public List<User> findAll() {
-        return userData;
+        return new ArrayList<>(userData);
     }
-
 }
