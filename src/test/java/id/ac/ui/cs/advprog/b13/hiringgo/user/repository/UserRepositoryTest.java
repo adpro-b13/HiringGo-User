@@ -1,10 +1,9 @@
-package repository;
+package id.ac.ui.cs.advprog.b13.hiringgo.user.repository;
 
-import id.ac.ui.cs.advprog.b13.hiringgo.user.enums.UserRole;
+import id.ac.ui.cs.advprog.b13.hiringgo.user.dto.UserRequest;
 import id.ac.ui.cs.advprog.b13.hiringgo.user.model.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import id.ac.ui.cs.advprog.b13.hiringgo.user.repository.UserRepository;
 
 import java.util.List;
 
@@ -20,8 +19,11 @@ class UserRepositoryTest {
     void setUp() {
         userRepository = new UserRepository();
 
-        user1 = new User("1", "budi", "Budi Santoso", UserRole.CUSTOMER.getValue());
-        user2 = new User("2", "siti", "Siti Aminah", UserRole.ADMIN.getValue());
+        UserRequest req1 = new UserRequest("1", "budi@gmail.com", "Budi Santoso", "MAHASISWA");
+        UserRequest req2 = new UserRequest("2", "siti@gmail.com", "Siti Aminah", "ADMIN");
+
+        user1 = new User(req1);
+        user2 = new User(req2);
 
         userRepository.save(user1);
         userRepository.save(user2);
@@ -29,20 +31,22 @@ class UserRepositoryTest {
 
     @Test
     void testSaveNewUser() {
-        User user3 = new User("3", "agus", "Agus Salim", UserRole.CUSTOMER.getValue());
+        UserRequest req3 = new UserRequest("3", "agus@gmail.com", "Agus Salim", "DOSEN");
+        User user3 = new User(req3);
         User result = userRepository.save(user3);
 
-        assertEquals("agus", result.getUsername());
+        assertEquals("agus@gmail.com", result.getEmail());
         assertEquals(3, userRepository.findAll().size());
     }
 
     @Test
     void testSaveUpdateUser() {
-        User updatedUser = new User("1", "budi", "Budi Update", UserRole.ADMIN.getValue());
+        UserRequest updatedReq = new UserRequest("1", "budi@gmail.com", "Budi Update", "ADMIN");
+        User updatedUser = new User(updatedReq);
         User result = userRepository.save(updatedUser);
 
         assertEquals("Budi Update", result.getName());
-        assertEquals(UserRole.ADMIN.getValue(), result.getRole());
+        assertEquals("ADMIN", result.getRole());
         assertEquals(2, userRepository.findAll().size());
     }
 
@@ -50,7 +54,7 @@ class UserRepositoryTest {
     void testFindByIdIfFound() {
         User result = userRepository.findById("1");
         assertNotNull(result);
-        assertEquals("budi", result.getUsername());
+        assertEquals("budi@gmail.com", result.getEmail());
     }
 
     @Test
@@ -60,15 +64,15 @@ class UserRepositoryTest {
     }
 
     @Test
-    void testFindByUsernameIfFound() {
-        User result = userRepository.findByUsername("siti");
+    void testFindByEmailIfFound() {
+        User result = userRepository.findByEmail("siti@gmail.com");
         assertNotNull(result);
         assertEquals("Siti Aminah", result.getName());
     }
 
     @Test
-    void testFindByUsernameIfNotFound() {
-        User result = userRepository.findByUsername("nonexistent");
+    void testFindByEmailIfNotFound() {
+        User result = userRepository.findByEmail("nonexistent@email.com");
         assertNull(result);
     }
 
