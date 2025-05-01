@@ -9,14 +9,15 @@ class UserTest {
 
     @Test
     void testCreateUserWithValidRequest() {
-        UserRequest req = new UserRequest("1337", "oppa@dev.id", "Oppa", "ADMIN");
+        UserRequest req = new UserRequest("oppa@dev.id", "Oppa", "ADMIN", null);
         User user = new User(req);
 
-        assertEquals("1337", user.getId());
+        assertNotNull(user.getId()); // id sekarang auto-generated
         assertEquals("oppa@dev.id", user.getEmail());
         assertEquals("Oppa", user.getName());
-        assertEquals("ADMIN", user.getRole());
+        assertEquals("ADMIN", user.getRole().name());
     }
+
 
     @Test
     void testCreateUserWithInvalidRole() {
