@@ -4,9 +4,11 @@ import id.ac.ui.cs.advprog.b13.hiringgo.user.dto.UserRequest;
 import id.ac.ui.cs.advprog.b13.hiringgo.user.enums.UserRole;
 import id.ac.ui.cs.advprog.b13.hiringgo.user.model.User;
 import id.ac.ui.cs.advprog.b13.hiringgo.user.repository.UserRepository;
+import org.springframework.scheduling.annotation.Async; // Import ini
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture; // Import ini
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -17,8 +19,9 @@ public class UserServiceImpl implements UserService {
         this.userRepository = userRepository;
     }
 
+    @Async // Anotasi @Async untuk menjalankan metode ini di thread terpisah
     @Override
-    public User createUser(UserRequest request) {
+    public CompletableFuture<User> createUser(UserRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new IllegalArgumentException("Email sudah terdaftar");
         }
@@ -27,16 +30,18 @@ public class UserServiceImpl implements UserService {
             throw new IllegalArgumentException("NIP sudah terdaftar");
         }
         User user = new User(request);
-        return userRepository.save(user);
+        return CompletableFuture.completedFuture(userRepository.save(user));
     }
 
+    @Async
     @Override
-    public List<User> listUsers() {
-        return userRepository.findAll();
+    public CompletableFuture<List<User>> listUsers() {
+        return CompletableFuture.completedFuture(userRepository.findAll());
     }
 
+    @Async
     @Override
-    public void updateUserRole(String userId, String newRole) {
+    public CompletableFuture<Void> updateUserRole(String userId, String newRole) {
         if (!UserRole.contains(newRole)) {
             throw new IllegalArgumentException("Invalid role");
         }
@@ -53,17 +58,21 @@ public class UserServiceImpl implements UserService {
         };
         userRepository.deleteById(userId);
         userRepository.save(updated);
+        return CompletableFuture.completedFuture(null); // Mengembalikan CompletableFuture<Void>
     }
 
+    @Async
     @Override
-    public void deleteUser(String userId) {
+    public CompletableFuture<Void> deleteUser(String userId) {
         if (!userRepository.deleteById(userId)) {
             throw new IllegalArgumentException("User tidak ditemukan");
         }
+        return CompletableFuture.completedFuture(null); // Mengembalikan CompletableFuture<Void>
     }
 
+    @Async
     @Override
-    public User findById(String userId) {
-        return userRepository.findById(userId);
+    public CompletableFuture<User> findById(String userId) {
+        return CompletableFuture.completedFuture(userRepository.findById(userId));
     }
 }

@@ -3,13 +3,13 @@ package id.ac.ui.cs.advprog.b13.hiringgo.user.controller;
 import id.ac.ui.cs.advprog.b13.hiringgo.user.dto.UserRequest;
 import id.ac.ui.cs.advprog.b13.hiringgo.user.enums.UserRole;
 import id.ac.ui.cs.advprog.b13.hiringgo.user.model.User;
-import id.ac.ui.cs.advprog.b13.hiringgo.user.repository.UserRepository;
+import id.ac.ui.cs.advprog.b13.hiringgo.user.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import id.ac.ui.cs.advprog.b13.hiringgo.user.service.UserService;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture; // Import ini
 import java.util.stream.Collectors;
 
 @RestController
@@ -25,13 +25,14 @@ public class UserController {
     @PostMapping("/create")
     public ResponseEntity<?> createUser(@RequestBody UserRequest request) {
         try {
-            User user = userService.createUser(request);
+            // Panggil metode async dan join() untuk mendapatkan hasilnya
+            User user = userService.createUser(request).join();
             Map<String, Object> userResp = new LinkedHashMap<>();
             userResp.put("id", user.getId());
             userResp.put("name", user.getName());
             userResp.put("email", user.getEmail());
             userResp.put("role", user.getRole().name());
-            if (user.getRole() == UserRole.DOSEN) 
+            if (user.getRole() == UserRole.DOSEN)
                 userResp.put("nip", user.getNip());
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(Map.of("user", userResp));
@@ -39,6 +40,12 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
+            // Tangani exception dari CompletableFuture jika ada
+            Throwable cause = e.getCause() != null ? e.getCause() : e;
+            if (cause instanceof IllegalArgumentException) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("error", cause.getMessage()));
+            }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Internal Server Error"));
         }
@@ -47,7 +54,7 @@ public class UserController {
     @GetMapping("/list")
     public ResponseEntity<?> listUsers() {
         try {
-            List<User> allUsers = userService.listUsers();
+            List<User> allUsers = userService.listUsers().join(); // Join untuk mendapatkan hasil
             List<Map<String, Object>> usersResp = allUsers.stream().map(user -> {
                 Map<String, Object> u = new LinkedHashMap<>();
                 u.put("id", user.getId());
@@ -58,6 +65,7 @@ public class UserController {
             }).collect(Collectors.toList());
             return ResponseEntity.ok(Map.of("users", usersResp));
         } catch (Exception e) {
+            Throwable cause = e.getCause() != null ? e.getCause() : e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Internal Server Error"));
         }
@@ -67,12 +75,17 @@ public class UserController {
     public ResponseEntity<?> updateRole(@PathVariable String userId, @RequestBody Map<String, String> req) {
         try {
             String newRole = req.get("role");
-            userService.updateUserRole(userId, newRole);
+            userService.updateUserRole(userId, newRole).join(); // Join untuk menunggu operasi selesai
             return ResponseEntity.ok(Map.of("message", "Role pengguna berhasil diperbarui"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
+            Throwable cause = e.getCause() != null ? e.getCause() : e;
+            if (cause instanceof IllegalArgumentException) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("error", cause.getMessage()));
+            }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Internal Server Error"));
         }
@@ -81,12 +94,17 @@ public class UserController {
     @DeleteMapping("/delete/{userId}")
     public ResponseEntity<?> deleteUser(@PathVariable String userId) {
         try {
-            userService.deleteUser(userId);
+            userService.deleteUser(userId).join(); // Join untuk menunggu operasi selesai
             return ResponseEntity.ok(Map.of("message", "User berhasil dihapus"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
+            Throwable cause = e.getCause() != null ? e.getCause() : e;
+            if (cause instanceof IllegalArgumentException) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("error", cause.getMessage()));
+            }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Internal Server Error"));
         }
