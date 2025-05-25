@@ -9,6 +9,12 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      DB_URL: ${{ secrets.DB_URL }}
+      DB_USERNAME: ${{ secrets.DB_USERNAME }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      JWT_EXPIRATION_MS: ${{ secrets.JWT_EXPIRATION_MS }}
 
     steps:
       - name: Checkout source
@@ -65,15 +71,27 @@ jobs:
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
+          DB_URL: ${{ secrets.DB_URL }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          JWT_EXPIRATION_MS: ${{ secrets.JWT_EXPIRATION_MS }}
         run: |
           JAR_FILE=$(find . -name "*.jar" | grep -v plain | head -n 1)
+          
+          ssh $EC2_USERNAME@$EC2_HOST "mkdir -p ~/apps"
           scp $JAR_FILE $EC2_USERNAME@$EC2_HOST:~/apps/user-service.jar
-
-          ssh $EC2_USERNAME@$EC2_HOST << 'EOF'
+          
+          ssh $EC2_USERNAME@$EC2_HOST << EOF
             if pgrep -f "user-service.jar"; then
-              sudo kill $(pgrep -f "user-service.jar")
+              sudo kill \$(pgrep -f "user-service.jar")
             fi
             sleep 3
+            export DB_URL="$DB_URL"
+            export DB_USERNAME="$DB_USERNAME"
+            export DB_PASSWORD="$DB_PASSWORD"
+            export JWT_SECRET="$JWT_SECRET"
+            export JWT_EXPIRATION_MS="$JWT_EXPIRATION_MS"
             nohup java -jar ~/apps/user-service.jar > ~/apps/app.log 2>&1 &
             echo "Deployment finished"
           EOF

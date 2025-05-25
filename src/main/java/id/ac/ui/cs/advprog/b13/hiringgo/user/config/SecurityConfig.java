@@ -43,7 +43,7 @@ public class SecurityConfig {
                                 "/actuator/info",
                                 "/actuator/prometheus"
                         ).permitAll()
-                        
+
                         .requestMatchers("/user/**").authenticated()
 
                         // Endpoint untuk Swagger (jika Anda akan menambahkannya)
