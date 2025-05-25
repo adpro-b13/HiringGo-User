@@ -45,6 +45,10 @@ dependencies {
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.3")
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.3")
 
+
+    implementation("org.springframework.boot:spring-boot-starter-actuator") // Actuator
+    implementation("io.micrometer:micrometer-registry-prometheus") // Prometheus
+
     compileOnly("org.projectlombok:lombok")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
