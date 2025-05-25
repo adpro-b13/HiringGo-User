@@ -1,37 +1,41 @@
 package id.ac.ui.cs.advprog.b13.hiringgo.user.model;
 
-import id.ac.ui.cs.advprog.b13.hiringgo.user.dto.UserRequest;
-import id.ac.ui.cs.advprog.b13.hiringgo.user.enums.UserRole;
-import lombok.Getter;
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-import java.util.UUID;
+import id.ac.ui.cs.advprog.b13.hiringgo.user.enums.Role;
 
-@Getter
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "app_users")
 public class User {
-    private final String id;
-    private final String email;
-    private final String name;
-    private final UserRole role;
-    private final String nip;
 
-    public User(UserRequest request) {
-        if (!UserRole.contains(request.getRole())) {
-            throw new IllegalArgumentException("Invalid role: " + request.getRole());
-        }
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-        this.id = generateId(); // misal: USR-XXXXXX
-        this.email = request.getEmail();
-        this.name = request.getName();
-        this.role = UserRole.valueOf(request.getRole());
+    @Column(name = "nama_lengkap", nullable = false)
+    private String namaLengkap;
 
-        if (this.role == UserRole.DOSEN && (request.getNip() == null || request.getNip().isEmpty())) {
-            throw new IllegalArgumentException("NIP is required for role DOSEN");
-        }
+    @Column(unique = true, nullable = false)
+    private String email;
 
-        this.nip = this.role == UserRole.DOSEN ? request.getNip() : null;
-    }
+    @Column(nullable = false)
+    private String password;
 
-    private String generateId() {
-        return "USR-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
-    }
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Role role;
+
+    @Column(unique = true, nullable = true)
+    private String nim;
+
+    @Column(name = "nip", unique = true, nullable = true)
+    private String nip;
 }

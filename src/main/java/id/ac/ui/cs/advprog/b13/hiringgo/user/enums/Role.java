@@ -6,7 +6,7 @@ public enum Role {
     DOSEN;
 
     public static boolean contains(String value) {
-        for (UserRole role : UserRole.values()) {
+        for (Role role : Role.values()) {
             if (role.name().equalsIgnoreCase(value)) return true;
         }
         return false;
