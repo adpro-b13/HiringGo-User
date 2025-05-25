@@ -38,11 +38,12 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS) // Gunakan session stateless
                 )
                 .authorizeHttpRequests(authz -> authz
-                        // Endpoint publik (jika ada, misal health check)
-                        // .requestMatchers("/public/**").permitAll()
-
-                        // Semua endpoint di bawah /user/** memerlukan otentikasi
-                        // dan akan dicek role-nya dengan @PreAuthorize di controller
+                        .requestMatchers(
+                                "/actuator/health",
+                                "/actuator/info",
+                                "/actuator/prometheus"
+                        ).permitAll()
+                        
                         .requestMatchers("/user/**").authenticated()
 
                         // Endpoint untuk Swagger (jika Anda akan menambahkannya)
