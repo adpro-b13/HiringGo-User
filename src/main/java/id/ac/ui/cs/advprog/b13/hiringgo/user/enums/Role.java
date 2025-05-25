@@ -1,6 +1,6 @@
 package id.ac.ui.cs.advprog.b13.hiringgo.user.enums;
 
-public enum UserRole {
+public enum Role {
     ADMIN,
     MAHASISWA,
     DOSEN;
