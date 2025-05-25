@@ -6,17 +6,18 @@ import id.ac.ui.cs.advprog.b13.hiringgo.user.model.User;
 import id.ac.ui.cs.advprog.b13.hiringgo.user.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize; // BARU
 import org.springframework.web.bind.annotation.*;
 
-import java.util.LinkedHashMap; // Digunakan di kode asli Anda
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.CompletionException; // Untuk menangani error dari .join()
+import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/user") // Base URL tetap /user
+@RequestMapping("/api/v1/user")
 public class UserController {
 
     private final UserService userService;
@@ -25,52 +26,55 @@ public class UserController {
         this.userService = userService;
     }
 
-    // Helper untuk membuat respons Map dari User object
-    // Disesuaikan agar menggunakan field dari User entity yang sudah JPA (namaLengkap, Long id)
     private Map<String, Object> createUserResponseMap(User user) {
         if (user == null) {
             return null;
         }
         Map<String, Object> userResp = new LinkedHashMap<>();
-        userResp.put("id", user.getId()); // ID sekarang Long
-        userResp.put("namaLengkap", user.getNamaLengkap()); // Menggunakan namaLengkap
+        userResp.put("id", user.getId());
+        userResp.put("namaLengkap", user.getNamaLengkap());
         userResp.put("email", user.getEmail());
         userResp.put("role", user.getRole().name());
-        if (user.getRole() == Role.DOSEN) { // Menggunakan enum Role
+        if (user.getRole() == Role.DOSEN) {
             userResp.put("nip", user.getNip());
+        }
+        if (user.getRole() == Role.MAHASISWA) { // Tambahkan ini untuk NIM
+            userResp.put("nim", user.getNim());
         }
         return userResp;
     }
 
     @PostMapping("/create")
-    public ResponseEntity<?> createUser(@RequestBody UserRequestDTO request) { // Menggunakan UserRequestDTO
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')") // Hanya ADMIN yang bisa create
+    public ResponseEntity<?> createUser(@RequestBody UserRequestDTO request) {
         try {
             User user = userService.createUser(request).join();
             Map<String, Object> responseMap = createUserResponseMap(user);
             return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(Map.of("user", responseMap)); // Struktur respons Map tetap
-        } catch (CompletionException e) { // Menangkap CompletionException dari .join()
-            Throwable cause = e.getCause(); // Mendapatkan exception asli
+                    .body(Map.of("message", "User created successfully", "user", responseMap));
+        } catch (CompletionException e) {
+            Throwable cause = e.getCause();
             if (cause instanceof IllegalArgumentException) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body(Map.of("error", cause.getMessage()));
             }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Terjadi kesalahan internal saat membuat user: " + (cause != null ? cause.getMessage() : e.getMessage())));
-        } catch (Exception e) { // Catch-all untuk error lain yang mungkin tidak terduga
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Terjadi kesalahan server: " + e.getMessage()));
         }
     }
 
     @GetMapping("/list")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')") // Hanya ADMIN yang bisa lihat semua user
     public ResponseEntity<?> listUsers() {
         try {
             List<User> allUsers = userService.listUsers().join();
             List<Map<String, Object>> usersRespList = allUsers.stream()
-                    .map(this::createUserResponseMap) // Menggunakan helper untuk konsistensi
+                    .map(this::createUserResponseMap)
                     .collect(Collectors.toList());
-            return ResponseEntity.ok(Map.of("users", usersRespList)); // Struktur respons Map tetap
+            return ResponseEntity.ok(Map.of("users", usersRespList));
         } catch (CompletionException e) {
             Throwable cause = e.getCause();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -81,31 +85,20 @@ public class UserController {
         }
     }
 
-    // DTO untuk request update role (bisa diletakkan di package dto jika belum ada)
-    // Saya akan gunakan Map<String, String> req seperti kode asli Anda untuk minimal perubahan di sini.
-    // Namun, menggunakan DTO khusus lebih disarankan.
-    // public static class RoleUpdateRequest {
-    //     private String role;
-    //     public String getRole() { return role; }
-    //     public void setRole(String role) { this.role = role; }
-    // }
-
     @PatchMapping("/update-role/{userId}")
-    public ResponseEntity<?> updateRole(@PathVariable Long userId, @RequestBody Map<String, String> req) { // userId diubah ke Long
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')") // Hanya ADMIN yang bisa update role
+    public ResponseEntity<?> updateRole(@PathVariable Long userId, @RequestBody Map<String, String> req) {
         try {
             String newRole = req.get("role");
             if (newRole == null || newRole.trim().isEmpty()) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body(Map.of("error", "Properti 'role' pada request body tidak boleh kosong"));
             }
-            // UserServiceImpl.updateUserRole sekarang mengembalikan CompletableFuture<Optional<User>>
             Optional<User> updatedUserOptional = userService.updateUserRole(userId, newRole).join();
 
             if (updatedUserOptional.isPresent()) {
-                // Jika ingin mengembalikan data user yang diupdate:
-                // Map<String, Object> responseMap = createUserResponseMap(updatedUserOptional.get());
-                // return ResponseEntity.ok(Map.of("user", responseMap, "message", "Role pengguna berhasil diperbarui"));
-                return ResponseEntity.ok(Map.of("message", "Role pengguna dengan ID " + userId + " berhasil diperbarui"));
+                Map<String, Object> responseMap = createUserResponseMap(updatedUserOptional.get());
+                return ResponseEntity.ok(Map.of("message", "Role pengguna dengan ID " + userId + " berhasil diperbarui", "user", responseMap));
             } else {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(Map.of("error", "User dengan ID " + userId + " tidak ditemukan"));
@@ -125,9 +118,9 @@ public class UserController {
     }
 
     @DeleteMapping("/delete/{userId}")
-    public ResponseEntity<?> deleteUser(@PathVariable Long userId) { // userId diubah ke Long
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')") // Hanya ADMIN yang bisa delete
+    public ResponseEntity<?> deleteUser(@PathVariable Long userId) {
         try {
-            // UserServiceImpl.deleteUser sekarang mengembalikan CompletableFuture<Boolean>
             boolean deleted = userService.deleteUser(userId).join();
             if (deleted) {
                 return ResponseEntity.ok(Map.of("message", "User dengan ID " + userId + " berhasil dihapus"));
@@ -137,8 +130,6 @@ public class UserController {
             }
         } catch (CompletionException e) {
             Throwable cause = e.getCause();
-            // Jika ada exception spesifik dari service yang ingin ditangani berbeda
-            // if (cause instanceof SomeSpecificExceptionForDelete) { ... }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Gagal menghapus user: " + (cause != null ? cause.getMessage() : e.getMessage())));
         } catch (Exception e) {
@@ -147,9 +138,9 @@ public class UserController {
         }
     }
 
-    // Opsional: Endpoint untuk mendapatkan user berdasarkan ID, jika dibutuhkan
     @GetMapping("/{userId}")
-    public ResponseEntity<?> getUserById(@PathVariable Long userId) { // userId diubah ke Long
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    public ResponseEntity<?> getUserById(@PathVariable Long userId) {
         try {
             Optional<User> userOptional = userService.findById(userId).join();
             if (userOptional.isPresent()) {

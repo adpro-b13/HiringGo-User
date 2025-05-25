@@ -5,8 +5,9 @@ import id.ac.ui.cs.advprog.b13.hiringgo.user.dto.UserResponseDTO;
 import id.ac.ui.cs.advprog.b13.hiringgo.user.model.User;
 import id.ac.ui.cs.advprog.b13.hiringgo.user.enums.Role;
 import id.ac.ui.cs.advprog.b13.hiringgo.user.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired; // Tambahkan ini
 import org.springframework.scheduling.annotation.Async;
-// import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder; // Tambahkan ini
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,22 +21,26 @@ import java.util.stream.Collectors;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
-    // private final PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder; // Tambahkan ini
 
-    public UserServiceImpl(UserRepository userRepository /*, PasswordEncoder passwordEncoder */) {
+    @Autowired // Tambahkan @Autowired atau modifikasi constructor
+    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
-        // this.passwordEncoder = passwordEncoder;
+        this.passwordEncoder = passwordEncoder; // Inisialisasi
     }
 
     @Async
     @Override
     @Transactional
-    public CompletableFuture<User> createUser(UserRequestDTO request) { // Pastikan UserRequestDTO di-import dengan benar
+    public CompletableFuture<User> createUser(UserRequestDTO request) {
         if (request == null) {
             return CompletableFuture.failedFuture(new IllegalArgumentException("Request tidak boleh null"));
         }
-        if (request.getEmail() == null || request.getRole() == null || request.getNamaLengkap() == null) {
-            return CompletableFuture.failedFuture(new IllegalArgumentException("Email, nama, dan role tidak boleh null dalam request"));
+        if (request.getEmail() == null || request.getRole() == null || request.getNamaLengkap() == null || request.getPassword() == null) { // Password juga wajib
+            return CompletableFuture.failedFuture(new IllegalArgumentException("Email, nama, role, dan password tidak boleh null dalam request"));
+        }
+        if (request.getPassword().length() < 8) { // Contoh validasi password
+            return CompletableFuture.failedFuture(new IllegalArgumentException("Password minimal 8 karakter"));
         }
 
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -60,7 +65,8 @@ public class UserServiceImpl implements UserService {
                 .namaLengkap(request.getNamaLengkap())
                 .email(request.getEmail())
                 .role(roleEnum)
-                .password("PLAIN_PASSWORD_PLACEHOLDER") // Akan di-hash nanti saat implementasi security
+                // HASH PASSWORD SEBELUM DISIMPAN
+                .password(passwordEncoder.encode(request.getPassword()))
                 .nip(roleEnum == Role.DOSEN ? request.getNip() : null)
                 .nim(roleEnum == Role.MAHASISWA ? request.getNim() : null)
                 .build();
